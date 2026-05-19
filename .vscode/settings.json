@@ -1,3 +1,14 @@
 {
-  "css.lint.unknownAtRules": "ignore"
+  "css.lint.unknownAtRules": "ignore",
+  "github.copilot.chat.localeOverride": "ko",
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "text": "You MUST write ALL commit messages in Korean language only. Never use English in the commit message title or body. Format: <type>: <Korean title>. Types allowed: feat, fix, refactor, style, docs, test, chore. Example: feat: 사용자 로그인 기능 추가"
+    }
+  ],
+  "scm.inputBoxValidationLength": 72,
+  "github.copilot.chat.generateTests.codeLensTitle": "테스트 생성",
+  "terminal.integrated.suggest.enabled": true,
+  "aiCommitMessage.language": "ko",
+  "aiCommitMessage.prompt": "모든 커밋 메시지는 반드시 한국어로 작성하세요. 형식: <타입>: <한국어 제목>. 허용 타입: feat, fix, refactor, style, docs, test, chore. 예시: feat: 사용자 로그인 기능 추가"
 }
