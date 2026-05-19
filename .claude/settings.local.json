@@ -4,11 +4,13 @@
       "WebSearch",
       "Bash",
       "WebFetch",
-      "mcp__playwright"
+      "mcp__playwright",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "playwright"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

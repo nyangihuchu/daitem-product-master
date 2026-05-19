@@ -2,25 +2,38 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboardIcon,
+  Building2Icon,
+  PackageIcon,
   BarChart3Icon,
-  SettingsIcon,
+  LogOutIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SIDEBAR_ITEMS } from '@/lib/constants'
+import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
 
 const ICON_MAP = {
   LayoutDashboard: LayoutDashboardIcon,
+  Building2: Building2Icon,
+  Package: PackageIcon,
   BarChart3: BarChart3Icon,
-  Settings: SettingsIcon,
 } as const
 
 type IconName = keyof typeof ICON_MAP
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <aside
@@ -30,7 +43,10 @@ export function Sidebar() {
       <nav className="flex flex-1 flex-col gap-1 p-3">
         {SIDEBAR_ITEMS.map((item) => {
           const Icon = ICON_MAP[item.icon as IconName]
-          const isActive = pathname === item.href
+          const isActive =
+            item.href === '/dashboard'
+              ? pathname === item.href
+              : pathname.startsWith(item.href)
 
           return (
             <Link
@@ -47,6 +63,16 @@ export function Sidebar() {
           )
         })}
       </nav>
+      <div className="p-3">
+        <Button
+          variant="ghost"
+          className="text-muted-foreground hover:text-foreground w-full justify-start gap-3"
+          onClick={handleSignOut}
+        >
+          <LogOutIcon className="size-4" />
+          로그아웃
+        </Button>
+      </div>
     </aside>
   )
 }

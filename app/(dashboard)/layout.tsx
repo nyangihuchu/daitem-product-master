@@ -2,6 +2,8 @@ import type { WithChildren } from '@/lib/types'
 import { Header } from '@/components/layout/header'
 import { Sidebar } from '@/components/layout/sidebar'
 
+export const dynamic = 'force-dynamic'
+
 export default function DashboardLayout({ children }: WithChildren) {
   return (
     <div className="flex min-h-screen flex-col">

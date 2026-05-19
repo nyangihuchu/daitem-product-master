@@ -1,6 +1,5 @@
-import type { NAV_ITEMS, SIDEBAR_ITEMS } from './constants'
+import type { SIDEBAR_ITEMS } from './constants'
 
-export type NavItem = (typeof NAV_ITEMS)[number]
 export type SidebarItem = (typeof SIDEBAR_ITEMS)[number]
 
 export interface WithChildren {
@@ -26,18 +25,49 @@ export type PageProps<
   searchParams: Promise<S>
 }
 
-export interface User {
-  id: string
-  name: string
-  email: string
-  avatarUrl?: string
-  role: 'admin' | 'user' | 'guest'
-}
-
 export interface StatCard {
   title: string
   value: string | number
   change?: number
   changeLabel?: string
   icon?: string
+}
+
+// ----------------------------------------------------------------
+// 도메인 타입
+// ----------------------------------------------------------------
+
+export type SupplierType = 'domestic' | 'overseas'
+export type PaymentTerm = 'prepaid' | 'postpaid' | 'monthly'
+export type ProductStatus = 'selling' | 'suspended' | 'out_of_stock' | 'discontinued'
+
+export interface Supplier {
+  id: string
+  user_id: string
+  type: SupplierType
+  name: string
+  contact_name: string | null
+  contact_phone: string | null
+  payment_term: PaymentTerm
+  memo: string | null
+  created_at: string
+}
+
+export interface Product {
+  id: string
+  user_id: string
+  supplier_id: string | null
+  sku: string
+  name: string
+  category: string | null
+  purchase_price: number
+  selling_price: number
+  margin_amount: number
+  margin_rate: number
+  stock_quantity: number
+  min_stock_quantity: number
+  platforms: string[]
+  status: ProductStatus
+  created_at: string
+  supplier?: Pick<Supplier, 'id' | 'name' | 'type'>
 }
