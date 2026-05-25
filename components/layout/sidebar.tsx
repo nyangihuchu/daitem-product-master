@@ -8,6 +8,11 @@ import {
   Building2Icon,
   PackageIcon,
   BarChart3Icon,
+  ShoppingCartIcon,
+  ClipboardListIcon,
+  WalletIcon,
+  CalendarDaysIcon,
+  SettingsIcon,
   LogOutIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -17,9 +22,14 @@ import { Button } from '@/components/ui/button'
 
 const ICON_MAP = {
   LayoutDashboard: LayoutDashboardIcon,
-  Building2: Building2Icon,
   Package: PackageIcon,
+  Building2: Building2Icon,
+  ShoppingCart: ShoppingCartIcon,
+  ClipboardList: ClipboardListIcon,
   BarChart3: BarChart3Icon,
+  Wallet: WalletIcon,
+  CalendarDays: CalendarDaysIcon,
+  Settings: SettingsIcon,
 } as const
 
 type IconName = keyof typeof ICON_MAP

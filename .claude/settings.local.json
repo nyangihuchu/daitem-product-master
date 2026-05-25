@@ -6,7 +6,15 @@
       "WebFetch",
       "mcp__playwright",
       "mcp__context7__resolve-library-id",
-      "mcp__context7__query-docs"
+      "mcp__context7__query-docs",
+      "mcp__shrimp-task-manager__reflect_task",
+      "mcp__shrimp-task-manager__split_tasks",
+      "mcp__shrimp-task-manager__execute_task",
+      "mcp__shrimp-task-manager__verify_task",
+      "mcp__shrimp-task-manager__list_tasks",
+      "mcp__shrimp-task-manager__get_task_detail",
+      "mcp__shrimp-task-manager__plan_task",
+      "mcp__shrimp-task-manager__analyze_task"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -4,7 +4,10 @@
       "type": "stdio",
       "command": "npx",
       "args": [
-        "@playwright/mcp@latest"
+        "@playwright/mcp@latest",
+        "--headless",
+        "--output-dir",
+        "C:\\Users\\cjl22\\.playwright-mcp"
       ],
       "env": {}
     },
@@ -28,6 +31,16 @@
         "shadcn@latest",
         "mcp"
       ]
+    },
+    "shrimp-task-manager": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-shrimp-task-manager"
+      ],
+      "env": {
+        "DATA_DIR": "E:\\cjl2211\\daitem\\daitem-product-master\\shrimp-data"
+      }
     }
   }
 }

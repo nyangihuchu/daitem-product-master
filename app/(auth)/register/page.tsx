@@ -34,7 +34,13 @@ type RegisterForm = z.infer<typeof registerSchema>
 
 const ERROR_MESSAGES: Record<string, string> = {
   'User already registered': '이미 가입된 이메일입니다',
+  'user_already_exists': '이미 가입된 이메일입니다',
   'Password should be at least 6 characters': '비밀번호는 6자 이상이어야 합니다',
+  'Email rate limit exceeded': '이메일 발송 한도를 초과했습니다. 잠시 후 다시 시도해주세요',
+  'over_email_send_rate_limit': '이메일 발송 한도를 초과했습니다. 잠시 후 다시 시도해주세요',
+  'over_request_rate_limit': '요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요',
+  'Signup is disabled': '현재 회원가입이 비활성화되어 있습니다',
+  'signup_disabled': '현재 회원가입이 비활성화되어 있습니다',
 }
 
 export default function RegisterPage() {
@@ -58,19 +64,29 @@ export default function RegisterPage() {
 
   async function onSubmit(data: RegisterForm) {
     setServerError(null)
-    const supabase = createClient()
+    try {
+      const supabase = createClient()
 
-    const { error } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-    })
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+      })
 
-    if (error) {
-      setServerError(ERROR_MESSAGES[error.message] ?? '회원가입 중 오류가 발생했습니다')
-      return
+      if (error) {
+        console.error('[register] signUp error:', error)
+        const msg =
+          ERROR_MESSAGES[error.message] ??
+          ERROR_MESSAGES[error.code ?? ''] ??
+          '회원가입 중 오류가 발생했습니다'
+        setServerError(msg)
+        return
+      }
+
+      setRedirectPending(true)
+    } catch (err) {
+      console.error('[register] unexpected error:', err)
+      setServerError('회원가입 중 오류가 발생했습니다')
     }
-
-    setRedirectPending(true)
   }
 
   return (
