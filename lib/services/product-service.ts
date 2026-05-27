@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { Product, MarketListing, ProductStatus } from '@/lib/types'
 
 interface GetProductsParams {
@@ -131,7 +132,7 @@ export async function getProduct(id: string): Promise<Product> {
 }
 
 export async function createProduct(input: ProductInput): Promise<Product> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data, error } = await supabase
     .from('products')
@@ -170,7 +171,7 @@ export async function createProduct(input: ProductInput): Promise<Product> {
 }
 
 export async function updateProduct(id: string, input: Partial<ProductInput>): Promise<Product> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data, error } = await supabase
     .from('products')
@@ -210,7 +211,7 @@ export async function updateProduct(id: string, input: Partial<ProductInput>): P
 }
 
 export async function deleteProduct(id: string): Promise<void> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { error } = await supabase
     .from('products')
@@ -247,7 +248,7 @@ export async function getAllProductsForExport(params: {
 }
 
 export async function upsertProducts(rows: ProductInput[]): Promise<{ count: number }> {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { error } = await supabase
     .from('products')

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import {
   BarChart,
   Bar,
@@ -23,38 +24,14 @@ function formatKRW(value: number) {
   return value.toLocaleString()
 }
 
-const DAILY_DATA = [
-  { period: '5/18', total_revenue: 198000, total_purchase: 99000, total_profit: 99000 },
-  { period: '5/19', total_revenue: 245000, total_purchase: 122500, total_profit: 122500 },
-  { period: '5/20', total_revenue: 312000, total_purchase: 156000, total_profit: 156000 },
-  { period: '5/21', total_revenue: 178000, total_purchase: 89000, total_profit: 89000 },
-  { period: '5/22', total_revenue: 420000, total_purchase: 210000, total_profit: 210000 },
-  { period: '5/23', total_revenue: 289000, total_purchase: 144500, total_profit: 144500 },
-  { period: '5/24', total_revenue: 368000, total_purchase: 184000, total_profit: 184000 },
-]
-
-const WEEKLY_DATA = [
-  { period: '4주전', total_revenue: 1320000, total_purchase: 660000, total_profit: 660000 },
-  { period: '3주전', total_revenue: 1580000, total_purchase: 790000, total_profit: 790000 },
-  { period: '2주전', total_revenue: 1450000, total_purchase: 725000, total_profit: 725000 },
-  { period: '지난주', total_revenue: 1750000, total_purchase: 875000, total_profit: 875000 },
-]
-
-const QUARTERLY_DATA = [
-  { period: '2025 Q2', total_revenue: 14200000, total_purchase: 7100000, total_profit: 7100000 },
-  { period: '2025 Q3', total_revenue: 16800000, total_purchase: 8400000, total_profit: 8400000 },
-  { period: '2025 Q4', total_revenue: 18950000, total_purchase: 9475000, total_profit: 9475000 },
-  { period: '2026 Q1', total_revenue: 16310000, total_purchase: 8155000, total_profit: 8155000 },
-]
-
-const ANNUAL_DATA = [
-  { period: '2023', total_revenue: 52000000, total_purchase: 26000000, total_profit: 26000000 },
-  { period: '2024', total_revenue: 68400000, total_purchase: 34200000, total_profit: 34200000 },
-  { period: '2025', total_revenue: 73500000, total_purchase: 36750000, total_profit: 36750000 },
-  { period: '2026 (YTD)', total_revenue: 28210000, total_purchase: 14105000, total_profit: 14105000 },
-]
-
-function ChartContent({ data }: { data: { period: string; total_revenue: number; total_purchase: number; total_profit: number }[] }) {
+function ChartContent({ data }: { data: PeriodStats[] }) {
+  if (data.length === 0) {
+    return (
+      <div className='flex h-[260px] items-center justify-center'>
+        <p className='text-muted-foreground text-sm'>데이터 없음</p>
+      </div>
+    )
+  }
   return (
     <div className='h-[260px] w-full'>
       <ResponsiveContainer width='100%' height='100%'>
@@ -95,15 +72,28 @@ function ChartContent({ data }: { data: { period: string; total_revenue: number;
 }
 
 export function PeriodSalesChart({ periodStats }: Props) {
-  const monthlyData = periodStats.map((s) => ({
-    period: s.period.slice(2).replace('-', '/'),
-    total_revenue: s.total_revenue,
-    total_purchase: s.total_purchase,
-    total_profit: s.total_profit,
-  }))
+  const [activePeriod, setActivePeriod] = useState('monthly')
+  const [data, setData] = useState<PeriodStats[]>(periodStats)
+  const [loading, setLoading] = useState(false)
+  const [initialized, setInitialized] = useState(false)
+
+  useEffect(() => {
+    if (!initialized) {
+      setInitialized(true)
+      return
+    }
+    setLoading(true)
+    fetch('/api/analytics/period-stats?period=' + activePeriod)
+      .then((r) => r.json())
+      .then((d) => {
+        setData(Array.isArray(d) ? d : [])
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [activePeriod])
 
   return (
-    <Tabs defaultValue='monthly'>
+    <Tabs defaultValue='monthly' onValueChange={setActivePeriod}>
       <TabsList className='mb-4 flex-wrap'>
         <TabsTrigger value='daily'>일간</TabsTrigger>
         <TabsTrigger value='weekly'>주간</TabsTrigger>
@@ -112,11 +102,15 @@ export function PeriodSalesChart({ periodStats }: Props) {
         <TabsTrigger value='annual'>연간</TabsTrigger>
       </TabsList>
 
-      <TabsContent value='daily'><ChartContent data={DAILY_DATA} /></TabsContent>
-      <TabsContent value='weekly'><ChartContent data={WEEKLY_DATA} /></TabsContent>
-      <TabsContent value='monthly'><ChartContent data={monthlyData} /></TabsContent>
-      <TabsContent value='quarterly'><ChartContent data={QUARTERLY_DATA} /></TabsContent>
-      <TabsContent value='annual'><ChartContent data={ANNUAL_DATA} /></TabsContent>
+      <TabsContent value={activePeriod}>
+        {loading ? (
+          <div className='flex h-[260px] items-center justify-center'>
+            <p className='text-muted-foreground text-sm'>로딩 중...</p>
+          </div>
+        ) : (
+          <ChartContent data={data} />
+        )}
+      </TabsContent>
     </Tabs>
   )
 }

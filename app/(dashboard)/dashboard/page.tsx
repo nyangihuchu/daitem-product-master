@@ -19,10 +19,11 @@ import {
 } from 'lucide-react'
 import { ChannelSalesChart } from '@/components/charts/channel-sales-chart'
 import {
-  getDummyDashboardStats,
-  getDummyProducts,
-  getDummySchedules,
-} from '@/lib/dummy-data'
+  getDashboardKPI,
+  getChannelSales,
+  getLowStockProducts,
+  getUpcomingSchedules,
+} from '@/lib/services/dashboard-service'
 import { SCHEDULE_TYPE_LABELS } from '@/lib/constants'
 
 export const metadata: Metadata = { title: '대시보드' }
@@ -33,49 +34,34 @@ function formatKRW(value: number) {
   return `${value.toLocaleString()}원`
 }
 
-function diffDays(dateStr: string) {
-  const target = new Date(dateStr)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-}
-
-export default function DashboardPage() {
-  const stats = getDummyDashboardStats()
-  const products = getDummyProducts()
-  const schedules = getDummySchedules()
-
-  const lowStockProducts = products.filter(
-    (p) => p.stock_quantity < p.min_stock_quantity && p.status !== 'discontinued'
-  )
-
-  const upcomingSchedules = schedules
-    .filter((s) => !s.is_completed)
-    .map((s) => ({ ...s, dday: diffDays(s.scheduled_at) }))
-    .filter((s) => s.dday <= 7)
-    .sort((a, b) => a.dday - b.dday)
-    .slice(0, 5)
+export default async function DashboardPage() {
+  const [kpi, channelSales, lowStockProducts, upcomingSchedules] = await Promise.all([
+    getDashboardKPI(),
+    getChannelSales(),
+    getLowStockProducts(),
+    getUpcomingSchedules(),
+  ])
 
   const KPI_ITEMS = [
     {
       title: '이달 매출',
-      value: formatKRW(stats.totalRevenue),
-      change: stats.revenueChange,
+      value: formatKRW(kpi.monthlyRevenue),
+      change: kpi.revenueChange,
       icon: TrendingUpIcon,
       iconColor: 'text-blue-500',
       iconBg: 'bg-blue-50 dark:bg-blue-950',
     },
     {
       title: '이달 주문',
-      value: `${stats.totalOrders}건`,
-      change: stats.ordersChange,
+      value: `${kpi.monthlyOrders}건`,
+      change: kpi.ordersChange,
       icon: ShoppingCartIcon,
       iconColor: 'text-green-500',
       iconBg: 'bg-green-50 dark:bg-green-950',
     },
     {
       title: '미정산 잔액',
-      value: formatKRW(stats.pendingSettlement),
+      value: formatKRW(kpi.pendingSettlement),
       change: null,
       icon: DollarSignIcon,
       iconColor: 'text-orange-500',
@@ -83,7 +69,7 @@ export default function DashboardPage() {
     },
     {
       title: '미처리 발주',
-      value: `${lowStockProducts.length}건`,
+      value: `${kpi.pendingPurchases}건`,
       change: null,
       icon: ClipboardListIcon,
       iconColor: 'text-purple-500',
@@ -141,7 +127,7 @@ export default function DashboardPage() {
             <CardDescription>이달 마켓 채널별 매출 현황</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChannelSalesChart />
+            <ChannelSalesChart data={channelSales} />
           </CardContent>
         </Card>
 

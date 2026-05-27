@@ -162,30 +162,31 @@ export default function SchedulesClient({ schedules: initialSchedules }: Props) 
     setDialogOpen(true)
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.title.trim()) return
     if (editTarget) {
-      setSchedules((prev) =>
-        prev.map((s) =>
-          s.id === editTarget.id
-            ? { ...s, ...form, description: form.description || null }
-            : s
-        )
-      )
+      const res = await fetch(`/api/schedules/${editTarget.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      setSchedules((prev) => prev.map((s) => (s.id === editTarget.id ? data : s)))
     } else {
-      const newSchedule: Schedule = {
-        id: `sch-${Date.now()}`,
-        type: form.type,
-        title: form.title,
-        description: form.description || null,
-        assigned_user_id: null,
-        scheduled_at: form.scheduled_at,
-        notify_days_before: form.notify_days_before,
-        is_completed: false,
-        created_at: new Date().toISOString(),
-      }
-      setSchedules((prev) => [...prev, newSchedule])
+      const res = await fetch('/api/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      setSchedules((prev) => [...prev, data])
     }
+    setDialogOpen(false)
+  }
+
+  async function handleDelete(id: string) {
+    await fetch(`/api/schedules/${id}`, { method: 'DELETE' })
+    setSchedules((prev) => prev.filter((s) => s.id !== id))
     setDialogOpen(false)
   }
 
@@ -466,6 +467,11 @@ export default function SchedulesClient({ schedules: initialSchedules }: Props) 
           </div>
 
           <DialogFooter>
+            {editTarget && (
+              <Button variant='destructive' onClick={() => handleDelete(editTarget.id)}>
+                삭제
+              </Button>
+            )}
             <Button variant='outline' onClick={() => setDialogOpen(false)}>취소</Button>
             <Button onClick={handleSave} disabled={!form.title.trim()}>
               {editTarget ? '수정' : '등록'}

@@ -47,21 +47,38 @@ export function calculateMargin({
   return { feeAmount, marginAmount, marginRate }
 }
 
-function ninetyDaysAgo(): string {
+export type PeriodType = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annual'
+
+function getDateRangeStart(period: PeriodType): string {
   const d = new Date()
-  d.setDate(d.getDate() - 90)
+  if (period === 'annual') {
+    d.setFullYear(d.getFullYear() - 5)
+  } else if (period === 'quarterly') {
+    d.setFullYear(d.getFullYear() - 2)
+  } else if (period === 'monthly') {
+    d.setMonth(d.getMonth() - 12)
+  } else {
+    d.setDate(d.getDate() - 90)
+  }
   return d.toISOString()
 }
 
-function formatPeriodKey(orderedAt: string, period: 'daily' | 'weekly' | 'monthly'): string {
+function formatPeriodKey(orderedAt: string, period: PeriodType): string {
   const d = new Date(orderedAt)
+  const year = d.getFullYear()
   if (period === 'daily') {
     return d.toISOString().slice(0, 10)
   }
   if (period === 'monthly') {
     return d.toISOString().slice(0, 7)
   }
-  const year = d.getFullYear()
+  if (period === 'quarterly') {
+    const quarter = Math.ceil((d.getMonth() + 1) / 3)
+    return `${year}-Q${quarter}`
+  }
+  if (period === 'annual') {
+    return `${year}`
+  }
   const startOfYear = new Date(year, 0, 1)
   const weekNo = Math.ceil(
     ((d.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7,
@@ -89,7 +106,7 @@ export async function getChannelMarginSummary(): Promise<MarginSummary[]> {
     .from('orders')
     .select('channel, order_items(product_id, quantity, selling_price, products(purchase_price))')
     .not('status', 'in', '(cancelled,returned)')
-    .gte('ordered_at', ninetyDaysAgo())
+    .gte('ordered_at', getDateRangeStart('daily'))
 
   if (error) throw new Error(error.message)
 
@@ -135,7 +152,7 @@ export async function getChannelMarginSummary(): Promise<MarginSummary[]> {
 }
 
 export async function getPeriodStats(
-  period: 'daily' | 'weekly' | 'monthly' = 'monthly',
+  period: PeriodType = 'monthly',
 ): Promise<PeriodStats[]> {
   const supabase = await createClient()
 
@@ -143,7 +160,7 @@ export async function getPeriodStats(
     .from('orders')
     .select('ordered_at, order_items(quantity, selling_price, products(purchase_price))')
     .not('status', 'in', '(cancelled,returned)')
-    .gte('ordered_at', ninetyDaysAgo())
+    .gte('ordered_at', getDateRangeStart(period))
     .order('ordered_at', { ascending: true })
 
   if (error) throw new Error(error.message)
@@ -188,7 +205,7 @@ export async function getTopProductSales(limit = 10): Promise<ProductSalesSummar
       'order_items(product_id, quantity, selling_price, products(name, brand, category_medium, purchase_price))',
     )
     .not('status', 'in', '(cancelled,returned)')
-    .gte('ordered_at', ninetyDaysAgo())
+    .gte('ordered_at', getDateRangeStart('daily'))
 
   if (error) throw new Error(error.message)
 

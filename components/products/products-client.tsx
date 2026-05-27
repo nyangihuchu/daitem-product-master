@@ -96,6 +96,7 @@ export function ProductsClient({ products, total, page, pageSize, suppliers, cat
   const [sheetMode, setSheetMode] = useState<'detail' | 'new' | 'edit'>('detail')
   const [listings, setListings] = useState<MarketListing[]>([])
   const [listingsLoading, setListingsLoading] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
 
   const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'done'>('idle')
   const [uploadResult, setUploadResult] = useState<{
@@ -255,6 +256,7 @@ export function ProductsClient({ products, total, page, pageSize, suppliers, cat
     try {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' })
       if (!res.ok) return
+      setDeleteTarget(null)
       closeSheet()
       startTransition(() => router.refresh())
     } catch {
@@ -376,7 +378,7 @@ export function ProductsClient({ products, total, page, pageSize, suppliers, cat
               <TableHead className='text-right'>재고</TableHead>
               <TableHead>상태</TableHead>
               <TableHead>마켓</TableHead>
-              <TableHead className='w-[60px]' />
+              <TableHead className='w-[90px]' />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -439,9 +441,19 @@ export function ProductsClient({ products, total, page, pageSize, suppliers, cat
                       </div>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Button variant='ghost' size='icon' className='size-8' onClick={() => openEdit(p)}>
-                        <PencilIcon className='size-3.5' />
-                      </Button>
+                      <div className='flex items-center gap-0.5'>
+                        <Button variant='ghost' size='icon' className='size-8' onClick={() => openEdit(p)}>
+                          <PencilIcon className='size-3.5' />
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          className='size-8 text-destructive hover:text-destructive'
+                          onClick={() => setDeleteTarget(p)}
+                        >
+                          <Trash2Icon className='size-3.5' />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )
@@ -492,7 +504,7 @@ export function ProductsClient({ products, total, page, pageSize, suppliers, cat
 
       {/* Sheet */}
       <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) closeSheet() }}>
-        <SheetContent className='w-full sm:max-w-xl overflow-y-auto'>
+        <SheetContent className='w-full sm:max-w-xl overflow-y-auto px-6'>
           <SheetHeader>
             <SheetTitle>
               {sheetMode === 'new' ? '상품 등록' : sheetMode === 'edit' ? '상품 수정' : '상품 상세'}
@@ -561,6 +573,55 @@ export function ProductsClient({ products, total, page, pageSize, suppliers, cat
                   <TabsTrigger value='market' className='flex-1'>마켓등록</TabsTrigger>
                 </TabsList>
                 <TabsContent value='basic' className='flex flex-col gap-3 pt-4'>
+                  {/* 이미지 섹션: 상품이미지 / 상세이미지 나란히 표시 */}
+                  <div className='grid grid-cols-2 gap-3'>
+                    {/* 상품이미지 */}
+                    <div className='flex flex-col gap-1'>
+                      <span className='text-muted-foreground text-xs font-medium'>상품이미지</span>
+                      {selectedProduct.image_url ? (
+                        <a
+                          href={selectedProduct.image_url}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='block'
+                        >
+                          <img
+                            src={selectedProduct.image_url}
+                            alt='상품이미지'
+                            className='w-full max-h-48 rounded border object-contain bg-muted'
+                          />
+                        </a>
+                      ) : (
+                        /* 이미지 없을 때 placeholder */
+                        <div className='flex w-full max-h-48 h-32 items-center justify-center rounded border bg-muted text-muted-foreground text-xs'>
+                          이미지 없음
+                        </div>
+                      )}
+                    </div>
+                    {/* 상세이미지 */}
+                    <div className='flex flex-col gap-1'>
+                      <span className='text-muted-foreground text-xs font-medium'>상세이미지</span>
+                      {selectedProduct.price_list_image_url ? (
+                        <a
+                          href={selectedProduct.price_list_image_url}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='block'
+                        >
+                          <img
+                            src={selectedProduct.price_list_image_url}
+                            alt='상세이미지'
+                            className='w-full max-h-48 rounded border object-contain bg-muted'
+                          />
+                        </a>
+                      ) : (
+                        /* 이미지 없을 때 placeholder */
+                        <div className='flex w-full max-h-48 h-32 items-center justify-center rounded border bg-muted text-muted-foreground text-xs'>
+                          이미지 없음
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <dl className='grid grid-cols-2 gap-x-4 gap-y-3 text-sm'>
                     {[
                       ['내부코드', selectedProduct.internal_code],
@@ -630,36 +691,41 @@ export function ProductsClient({ products, total, page, pageSize, suppliers, cat
                   <PencilIcon className='mr-1.5 size-3.5' />
                   수정
                 </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant='destructive' size='sm' className='flex-1'>
-                      <Trash2Icon className='mr-1.5 size-3.5' />
-                      삭제
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>상품을 삭제하시겠습니까?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {selectedProduct.name} 상품을 삭제합니다. 이 작업은 되돌릴 수 없습니다.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>취소</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDelete(selectedProduct.id)}
-                        className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                      >
-                        삭제
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button
+                  variant='destructive'
+                  size='sm'
+                  className='flex-1'
+                  onClick={() => setDeleteTarget(selectedProduct)}
+                >
+                  <Trash2Icon className='mr-1.5 size-3.5' />
+                  삭제
+                </Button>
               </div>
             </div>
           )}
         </SheetContent>
       </Sheet>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>상품을 삭제하시겠습니까?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.name} 상품을 삭제합니다. 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTarget && handleDelete(deleteTarget.id)}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={uploadState === 'done'} onOpenChange={(open) => { if (!open) setUploadState('idle') }}>
         <DialogContent className='max-w-lg'>

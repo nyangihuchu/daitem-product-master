@@ -238,6 +238,43 @@ create index idx_schedules_scheduled_at on public.schedules(scheduled_at);
 create index idx_schedules_assigned     on public.schedules(assigned_user_id) where not is_completed;
 ```
 
+### settlements
+
+```sql
+create table public.settlements (
+  id                uuid primary key default gen_random_uuid(),
+  market_name       text not null
+                      check (market_name in ('cafe24', 'naver', 'coupang', 'gmarket', 'auction', 'lotteon', '11st')),
+  settlement_cycle  text not null
+                      check (settlement_cycle in ('weekly', 'biweekly', 'monthly')),
+  expected_date     date not null,
+  expected_amount   numeric(12, 2) not null default 0,
+  actual_amount     numeric(12, 2),
+  status            text not null default 'pending'
+                      check (status in ('pending', 'completed', 'overdue')),
+  deleted_at        timestamptz,
+  created_at        timestamptz not null default now()
+);
+
+create index idx_settlements_market_name on public.settlements(market_name, expected_date desc);
+create index idx_settlements_status      on public.settlements(status) where deleted_at is null;
+```
+
+### push_subscriptions
+
+```sql
+create table public.push_subscriptions (
+  id           uuid primary key default gen_random_uuid(),
+  user_id      uuid not null references public.users(id) on delete cascade,
+  endpoint     text not null unique,
+  keys_auth    text not null,
+  keys_p256dh  text not null,
+  created_at   timestamptz not null default now()
+);
+
+create index idx_push_subs_user on public.push_subscriptions(user_id);
+```
+
 ---
 
 ## DB 함수
@@ -278,6 +315,7 @@ alter table public.purchases      enable row level security;
 alter table public.purchase_items enable row level security;
 alter table public.market_fees    enable row level security;
 alter table public.schedules      enable row level security;
+alter table public.settlements    enable row level security;
 
 -- 인증된 사용자 전체 조회 허용 (조회 전용 포함)
 create policy "인증 사용자 조회" on public.products
@@ -311,4 +349,6 @@ create policy "운영자 이상 쓰기" on public.products
 9. `purchase_items`
 10. `market_fees`
 11. `schedules`
-12. RLS 정책 적용
+12. `settlements`
+13. `push_subscriptions`
+14. RLS 정책 적용

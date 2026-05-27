@@ -124,8 +124,21 @@ import { Button } from '@/components/ui/button'
 - `market_listings`, `price_history`
 - `orders`, `order_items`, `purchases`, `purchase_items`
 - `market_fees`, `schedules`
+- `push_subscriptions` (브라우저 푸시 알림 구독 정보)
 
 소프트 딜리트(`deleted_at`) 패턴, 매입가 변경 시 자동 이력 기록 트리거 포함.
+
+## 환경변수 (Task 030: 알림 시스템)
+
+```
+# Cron 트리거 인증 토큰 (POST /api/notifications/trigger Bearer 인증)
+CRON_SECRET=your-cron-secret
+
+# Web Push VAPID 키 (npx web-push generate-vapid-keys 로 생성)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PRIVATE_KEY=your-vapid-private-key
+VAPID_EMAIL=mailto:your-email@example.com
+```
 
 ## MCP 서버 (`.mcp.json`)
 

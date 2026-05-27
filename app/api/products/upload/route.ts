@@ -33,6 +33,8 @@ interface UploadRow {
   status?: ProductStatus
   stock_quantity?: number
   min_stock_quantity?: number
+  image_url?: string | null
+  price_list_image_url?: string | null
 }
 
 function toStr(v: unknown): string | null {
@@ -134,6 +136,8 @@ export async function POST(request: NextRequest) {
         status,
         stock_quantity: toNum(raw['stock_quantity']) ?? 0,
         min_stock_quantity: toNum(raw['min_stock_quantity']) ?? 0,
+        image_url: toStr(raw['image_url']),
+        price_list_image_url: toStr(raw['price_list_image_url']),
       })
     }
 

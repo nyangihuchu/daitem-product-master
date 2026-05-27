@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format, parseISO, isAfter, isBefore, addDays } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -19,13 +19,13 @@ import {
   CheckCircle2Icon,
   ChevronRightIcon,
   CalendarIcon,
+  Loader2Icon,
 } from 'lucide-react'
 import { MARKET_CHANNELS } from '@/lib/constants'
 import type { Settlement, Order, MarketFee } from '@/lib/types'
 
 interface Props {
   settlements: Settlement[]
-  orders: Order[]
   fees: MarketFee[]
 }
 
@@ -49,14 +49,28 @@ function channelLabel(ch: string) {
   return MARKET_CHANNELS.find((c) => c.value === ch)?.label ?? ch
 }
 
-export function SettlementsClient({ settlements, orders, fees }: Props) {
+export function SettlementsClient({ settlements, fees }: Props) {
   const [selected, setSelected] = useState<Settlement | null>(null)
+  const [channelOrders, setChannelOrders] = useState<Order[]>([])
+  const [loadingOrders, setLoadingOrders] = useState(false)
+
+  useEffect(() => {
+    if (!selected) {
+      setChannelOrders([])
+      return
+    }
+    setLoadingOrders(true)
+    fetch(`/api/orders?channel=${selected.market_name}&limit=20`)
+      .then((r) => r.json())
+      .then((data) => setChannelOrders(Array.isArray(data) ? data : []))
+      .catch(() => setChannelOrders([]))
+      .finally(() => setLoadingOrders(false))
+  }, [selected])
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const in30days = addDays(today, 30)
 
-  // 요약 카드 계산
   const pendingThisMonth = settlements
     .filter((s) => s.status === 'pending')
     .reduce((sum, s) => sum + s.expected_amount, 0)
@@ -67,7 +81,6 @@ export function SettlementsClient({ settlements, orders, fees }: Props) {
 
   const completedCount = settlements.filter((s) => s.status === 'completed').length
 
-  // 30일 내 정산 예정일 타임라인
   const timeline = settlements
     .filter((s) => {
       const d = parseISO(s.expected_date)
@@ -75,21 +88,15 @@ export function SettlementsClient({ settlements, orders, fees }: Props) {
     })
     .sort((a, b) => a.expected_date.localeCompare(b.expected_date))
 
-  // 상세 Sheet: 해당 채널 주문 목록
-  const detailOrders = selected
-    ? orders.filter((o) => o.channel === selected.market_name)
-    : []
-
   const detailFeeRate = selected
     ? fees.find((f) => f.market_name === selected.market_name)?.fee_rate ?? 0
     : 0
 
-  const detailRevenue = detailOrders.reduce(
+  const detailRevenue = channelOrders.reduce(
     (sum, o) => sum + (o.order_items ?? []).reduce((s, i) => s + i.quantity * i.selling_price, 0),
     0
   )
   const detailFeeAmount = Math.round(detailRevenue * (detailFeeRate / 100))
-  const detailNetAmount = detailRevenue - detailFeeAmount
 
   return (
     <div className='flex flex-col gap-6'>
@@ -152,54 +159,58 @@ export function SettlementsClient({ settlements, orders, fees }: Props) {
             <CardDescription>마켓별 정산 내역 및 상태</CardDescription>
           </CardHeader>
           <CardContent className='overflow-x-auto'>
-            <table className='w-full text-sm'>
-              <thead>
-                <tr className='text-muted-foreground border-b text-xs'>
-                  <th className='pb-2 text-left font-medium'>마켓</th>
-                  <th className='pb-2 text-left font-medium'>정산주기</th>
-                  <th className='pb-2 text-left font-medium'>정산예정일</th>
-                  <th className='pb-2 text-right font-medium'>예상금액</th>
-                  <th className='pb-2 text-right font-medium'>실정산금액</th>
-                  <th className='pb-2 text-center font-medium'>상태</th>
-                  <th className='pb-2 text-center font-medium'>상세</th>
-                </tr>
-              </thead>
-              <tbody>
-                {settlements.map((s) => {
-                  const cfg = STATUS_CONFIG[s.status]
-                  return (
-                    <tr key={s.id} className='border-b last:border-0'>
-                      <td className='py-2.5 font-medium'>{channelLabel(s.market_name)}</td>
-                      <td className='text-muted-foreground py-2.5'>{CYCLE_LABELS[s.settlement_cycle]}</td>
-                      <td className='py-2.5'>
-                        {format(parseISO(s.expected_date), 'yyyy-MM-dd')}
-                      </td>
-                      <td className='py-2.5 text-right'>{fmt(s.expected_amount)}</td>
-                      <td className='py-2.5 text-right'>
-                        {s.actual_amount !== null ? (
-                          <span className='text-green-600 dark:text-green-400'>{fmt(s.actual_amount)}</span>
-                        ) : (
-                          <span className='text-muted-foreground'>-</span>
-                        )}
-                      </td>
-                      <td className='py-2.5 text-center'>
-                        <Badge variant={cfg.variant} className='text-xs'>{cfg.label}</Badge>
-                      </td>
-                      <td className='py-2.5 text-center'>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          className='h-7 px-2'
-                          onClick={() => setSelected(s)}
-                        >
-                          <ChevronRightIcon className='size-4' />
-                        </Button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            {settlements.length === 0 ? (
+              <p className='text-muted-foreground py-8 text-center text-sm'>정산 내역이 없습니다.</p>
+            ) : (
+              <table className='w-full text-sm'>
+                <thead>
+                  <tr className='text-muted-foreground border-b text-xs'>
+                    <th className='pb-2 text-left font-medium'>마켓</th>
+                    <th className='pb-2 text-left font-medium'>정산주기</th>
+                    <th className='pb-2 text-left font-medium'>정산예정일</th>
+                    <th className='pb-2 text-right font-medium'>예상금액</th>
+                    <th className='pb-2 text-right font-medium'>실정산금액</th>
+                    <th className='pb-2 text-center font-medium'>상태</th>
+                    <th className='pb-2 text-center font-medium'>상세</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {settlements.map((s) => {
+                    const cfg = STATUS_CONFIG[s.status]
+                    return (
+                      <tr key={s.id} className='border-b last:border-0'>
+                        <td className='py-2.5 font-medium'>{channelLabel(s.market_name)}</td>
+                        <td className='text-muted-foreground py-2.5'>{CYCLE_LABELS[s.settlement_cycle]}</td>
+                        <td className='py-2.5'>
+                          {format(parseISO(s.expected_date), 'yyyy-MM-dd')}
+                        </td>
+                        <td className='py-2.5 text-right'>{fmt(s.expected_amount)}</td>
+                        <td className='py-2.5 text-right'>
+                          {s.actual_amount !== null ? (
+                            <span className='text-green-600 dark:text-green-400'>{fmt(s.actual_amount)}</span>
+                          ) : (
+                            <span className='text-muted-foreground'>-</span>
+                          )}
+                        </td>
+                        <td className='py-2.5 text-center'>
+                          <Badge variant={cfg.variant} className='text-xs'>{cfg.label}</Badge>
+                        </td>
+                        <td className='py-2.5 text-center'>
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            className='h-7 px-2'
+                            onClick={() => setSelected(s)}
+                          >
+                            <ChevronRightIcon className='size-4' />
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
           </CardContent>
         </Card>
 
@@ -289,11 +300,16 @@ export function SettlementsClient({ settlements, orders, fees }: Props) {
               {/* 관련 주문 목록 */}
               <div>
                 <h3 className='mb-3 text-sm font-semibold'>관련 주문 내역</h3>
-                {detailOrders.length === 0 ? (
+                {loadingOrders ? (
+                  <div className='flex items-center justify-center py-6 gap-2 text-muted-foreground text-sm'>
+                    <Loader2Icon className='size-4 animate-spin' />
+                    <span>주문 내역 로딩 중...</span>
+                  </div>
+                ) : channelOrders.length === 0 ? (
                   <p className='text-muted-foreground text-sm py-4 text-center'>주문 내역 없음</p>
                 ) : (
                   <div className='flex flex-col gap-2'>
-                    {detailOrders.map((o) => {
+                    {channelOrders.map((o) => {
                       const orderTotal = (o.order_items ?? []).reduce(
                         (s, i) => s + i.quantity * i.selling_price, 0
                       )

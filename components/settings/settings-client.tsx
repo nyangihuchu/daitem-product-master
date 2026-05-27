@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -93,9 +94,84 @@ export default function SettingsClient({ users: initialUsers, fees: initialFees 
   const [savingMarket, setSavingMarket] = useState<string | null>(null)
 
   // ─── 프로필 알림 상태 ────────────────────────────────────────────────────
-  const [notif, setNotif] = useState({ email: true, browser_push: false, kakao: false })
+  const [notif, setNotif] = useState({ email: false, browser_push: false, kakao: false })
+  const [notifLoading, setNotifLoading] = useState(false)
 
   const currentUser = users[0]
+
+  useEffect(() => {
+    fetch('/api/me/notification-settings')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setNotif(data) })
+      .catch(() => {})
+  }, [])
+
+  async function handleNotifChange(key: 'email' | 'browser_push' | 'kakao', value: boolean) {
+    if (key === 'browser_push' && value) {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        toast.error('이 브라우저는 푸시 알림을 지원하지 않습니다')
+        return
+      }
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') {
+        toast.error('알림 권한이 거부되었습니다. 브라우저 설정에서 허용해 주세요.')
+        return
+      }
+      const swReg = await navigator.serviceWorker.getRegistration('/sw.js')
+      if (!swReg) {
+        toast.warning('서비스 워커 미설치 — 브라우저 푸시를 사용하려면 SW 등록이 필요합니다')
+        return
+      }
+      try {
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+        if (!vapidKey) throw new Error('VAPID 키 미설정')
+        const sub = await swReg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: vapidKey,
+        })
+        const json = sub.toJSON()
+        await fetch('/api/notifications/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
+        })
+      } catch {
+        toast.error('푸시 구독 등록에 실패했습니다')
+        return
+      }
+    }
+
+    if (key === 'browser_push' && !value) {
+      const swReg = await navigator.serviceWorker?.getRegistration('/sw.js')
+      const sub = await swReg?.pushManager.getSubscription()
+      if (sub) {
+        const endpoint = sub.endpoint
+        await sub.unsubscribe()
+        await fetch('/api/notifications/subscribe', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint }),
+        }).catch(() => {})
+      }
+    }
+
+    const prev = notif
+    setNotif((p) => ({ ...p, [key]: value }))
+    setNotifLoading(true)
+    try {
+      const res = await fetch('/api/me/notification-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      setNotif(prev)
+      toast.error('알림 설정 저장에 실패했습니다')
+    } finally {
+      setNotifLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!historySheetMarket) return
@@ -353,7 +429,8 @@ export default function SettingsClient({ users: initialUsers, fees: initialFees 
                   <Switch
                     id='prof-email'
                     checked={notif.email}
-                    onCheckedChange={(v) => setNotif((p) => ({ ...p, email: v }))}
+                    disabled={notifLoading}
+                    onCheckedChange={(v) => handleNotifChange('email', v)}
                   />
                 </div>
                 <div className='flex items-center justify-between'>
@@ -361,7 +438,8 @@ export default function SettingsClient({ users: initialUsers, fees: initialFees 
                   <Switch
                     id='prof-browser'
                     checked={notif.browser_push}
-                    onCheckedChange={(v) => setNotif((p) => ({ ...p, browser_push: v }))}
+                    disabled={notifLoading}
+                    onCheckedChange={(v) => handleNotifChange('browser_push', v)}
                   />
                 </div>
                 <div className='flex items-center justify-between'>
@@ -369,7 +447,8 @@ export default function SettingsClient({ users: initialUsers, fees: initialFees 
                   <Switch
                     id='prof-kakao'
                     checked={notif.kakao}
-                    onCheckedChange={(v) => setNotif((p) => ({ ...p, kakao: v }))}
+                    disabled={notifLoading}
+                    onCheckedChange={(v) => handleNotifChange('kakao', v)}
                   />
                 </div>
               </CardContent>
