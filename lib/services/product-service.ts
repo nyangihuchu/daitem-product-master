@@ -37,6 +37,7 @@ interface ProductInput {
   stock_quantity?: number
   min_stock_quantity?: number
   cafe24_product_id?: string | null
+  product_desc?: string | null
 }
 
 export async function getProducts({
@@ -162,6 +163,7 @@ export async function createProduct(input: ProductInput): Promise<Product> {
       shipping_fee: input.shipping_fee ?? null,
       lead_time_desc: input.lead_time_desc ?? null,
       cafe24_product_id: input.cafe24_product_id ?? null,
+      product_desc: input.product_desc ?? null,
     })
     .select()
     .single()
@@ -201,6 +203,7 @@ export async function updateProduct(id: string, input: Partial<ProductInput>): P
       ...(input.shipping_fee !== undefined && { shipping_fee: input.shipping_fee }),
       ...(input.lead_time_desc !== undefined && { lead_time_desc: input.lead_time_desc }),
       ...(input.cafe24_product_id !== undefined && { cafe24_product_id: input.cafe24_product_id }),
+      ...(input.product_desc !== undefined && { product_desc: input.product_desc }),
     })
     .eq('id', id)
     .select()

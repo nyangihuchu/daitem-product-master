@@ -144,6 +144,7 @@ export interface Product {
   status: ProductStatus
   stock_quantity: number
   min_stock_quantity: number
+  product_desc: string | null
   /** 카페24 API 연동 대비 Phase 1부터 포함 */
   cafe24_product_id: string | null
   deleted_at: string | null

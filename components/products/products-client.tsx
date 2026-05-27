@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -40,6 +41,7 @@ const productSchema = z.object({
   purchase_price: z.string().min(1, '구입가를 입력하세요'),
   status: z.enum(['selling', 'out_of_stock', 'discontinued', 'pending', 'reviewing']),
   stock_quantity: z.string().optional(),
+  product_desc: z.string().optional(),
 })
 type ProductForm = z.infer<typeof productSchema>
 
@@ -197,6 +199,7 @@ export function ProductsClient({ products, total, page, pageSize, suppliers, cat
       purchase_price: String(p.purchase_price),
       status: p.status,
       stock_quantity: String(p.stock_quantity),
+      product_desc: p.product_desc ?? '',
     })
     setSelectedProduct(p)
     setSheetMode('edit')
@@ -555,6 +558,15 @@ export function ProductsClient({ products, total, page, pageSize, suppliers, cat
                   </SelectContent>
                 </Select>
               </div>
+              <div className='flex flex-col gap-1'>
+                <label className='text-sm font-medium'>상품 설명</label>
+                <Textarea
+                  {...register('product_desc')}
+                  placeholder='상품 요약 설명을 입력하세요'
+                  rows={3}
+                  className='resize-none'
+                />
+              </div>
               {errors.root && (
                 <p className='text-destructive text-sm'>{errors.root.message}</p>
               )}
@@ -646,6 +658,12 @@ export function ProductsClient({ products, total, page, pageSize, suppliers, cat
                       </div>
                     ))}
                   </dl>
+                  <div className='flex flex-col gap-1'>
+                    <span className='text-muted-foreground text-xs font-medium'>상품 설명</span>
+                    <p className='text-sm leading-relaxed whitespace-pre-wrap rounded-md bg-muted/40 px-3 py-2'>
+                      {selectedProduct.product_desc ?? '-'}
+                    </p>
+                  </div>
                 </TabsContent>
                 <TabsContent value='price' className='flex flex-col gap-3 pt-4'>
                   <dl className='grid grid-cols-2 gap-x-4 gap-y-3 text-sm'>

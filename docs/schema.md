@@ -75,6 +75,7 @@ create table public.products (
                          check (status in ('selling', 'out_of_stock', 'discontinued', 'pending', 'reviewing')),
   stock_quantity       integer not null default 0,
   min_stock_quantity   integer not null default 0,
+  product_desc         text,                        -- 상품 상세 설명
   cafe24_product_id    text,
   deleted_at           timestamptz,
   created_at           timestamptz not null default now()
